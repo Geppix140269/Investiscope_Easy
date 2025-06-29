@@ -29,22 +29,110 @@ exports.handler = async (event, context) => {
       };
     }
     
-    // Extract all data
+    // Extract all data with proper field mappings
     const p = data.property_data || {};
     const e = data.eligibility_data || {};
     const r = data.results || {};
-    const eligible = data.eligible === 'true' || data.eligible === true;
-    const grantAmount = parseInt(data.grant_amount || r.grant || 0);
     
-    // Calculate additional metrics
-    const totalInvestment = r.totalProject || 0;
-    const yourInvestment = r.yourCost || totalInvestment;
-    const roiPercent = eligible ? r.roiWithGrant : r.roiWithoutGrant;
-    const futureValue = r.futureValue || 0;
-    const annualRental = r.annualRentalIncome || 0;
+    // Check if we have the complete data structure (from updated calculator)
+    const hasCompleteData = r.propertyPurchase !== undefined;
+    
+    // Get eligibility status
+    const eligible = e.eligible === true || e.eligible === 'true';
+    
+    // Property values
+    const propertyPrice = p.price || 0;
+    const propertySize = p.size || 0;
+    const bedrooms = p.bedrooms || p.rooms || 0;
+    const renovationPerSqm = p.renovationLevel || p.renovationPerSqm || 0;
+    
+    // Calculate costs (handle both old and new data structures)
+    let renovationCost, equipment, innovation, environmental, designPm, preliminaryStudies;
+    let agencyFee, registrationTax, notaryFee, consultingFee;
+    let totalEligible, totalNonEligible, totalProject;
+    let grantAmount, taxCredit, totalBenefit, netInvestment;
+    
+    if (hasCompleteData) {
+      // New complete data structure
+      renovationCost = r.renovationCost || 0;
+      equipment = r.equipment || 0;
+      innovation = r.innovation || 0;
+      environmental = r.environmental || 0;
+      designPm = r.designPm || 0;
+      preliminaryStudies = r.preliminaryStudies || 0;
+      
+      agencyFee = r.agencyFee || 0;
+      registrationTax = r.registrationTax || 0;
+      notaryFee = r.notaryFee || 0;
+      consultingFee = r.consultingFee || 0;
+      
+      totalEligible = r.totalEligible || 0;
+      totalNonEligible = r.totalNonEligible || 0;
+      totalProject = r.totalProject || 0;
+      
+      grantAmount = eligible ? (r.grant || 0) : 0;
+      taxCredit = eligible ? (r.taxCredit || 0) : 0;
+      totalBenefit = eligible ? (r.totalBenefit || 0) : 0;
+      netInvestment = r.netInvestment || r.yourCost || totalProject;
+    } else {
+      // Old data structure - calculate values
+      renovationCost = propertySize * renovationPerSqm;
+      
+      // Estimate additional components
+      equipment = Math.round(propertySize * 250);
+      innovation = Math.round(propertySize * 125);
+      environmental = Math.round(propertySize * 83);
+      
+      // Professional fees
+      const civilWorks = propertyPrice + renovationCost;
+      designPm = civilWorks * 0.06;
+      const preliminaryTotal = civilWorks + equipment + innovation + environmental + designPm;
+      preliminaryStudies = preliminaryTotal * 0.015 / (1 - 0.015);
+      
+      // Non-eligible costs
+      agencyFee = propertyPrice * 0.03;
+      registrationTax = propertyPrice * 0.09;
+      notaryFee = propertyPrice * 0.025;
+      consultingFee = 15000;
+      
+      totalEligible = preliminaryTotal + preliminaryStudies;
+      totalNonEligible = agencyFee + registrationTax + notaryFee + consultingFee;
+      totalProject = totalEligible + totalNonEligible;
+      
+      // Grant calculations
+      if (eligible) {
+        grantAmount = totalEligible * 0.45;
+        taxCredit = totalEligible * 0.15;
+        totalBenefit = grantAmount + taxCredit;
+        netInvestment = totalProject - grantAmount - taxCredit;
+      } else {
+        grantAmount = 0;
+        taxCredit = 0;
+        totalBenefit = 0;
+        netInvestment = totalProject;
+      }
+    }
+    
+    // Financial projections - look in multiple places for the data
+    const futureValue = r.futureValue || (totalProject * Math.pow(1.035, 5));
+    const capitalGain = futureValue - totalProject;
+    const annualRental = r.annualRentalIncome || r.annualIncome || (propertyPrice * 0.18 * 0.8);
     const monthlyRental = annualRental / 12;
-    const capRate = (annualRental / totalInvestment * 100).toFixed(1);
-    const paybackYears = (yourInvestment / annualRental).toFixed(1);
+    
+    // Calculate metrics
+    const capRate = totalProject > 0 ? (annualRental / totalProject * 100).toFixed(1) : '0.0';
+    const paybackYears = annualRental > 0 ? (netInvestment / annualRental).toFixed(1) : 'N/A';
+    const fiveYearCashFlow = (annualRental * 5) - netInvestment;
+    
+    // ROI calculation
+    let roiPercent;
+    if (eligible && netInvestment > 0) {
+      roiPercent = ((capitalGain + totalBenefit) / netInvestment * 100).toFixed(1);
+    } else if (totalProject > 0) {
+      roiPercent = (capitalGain / totalProject * 100).toFixed(1);
+    } else {
+      roiPercent = '0.0';
+    }
     
     // Professional HTML Report
     const html = `<!DOCTYPE html>
@@ -451,24 +539,24 @@ exports.handler = async (event, context) => {
             <div class="summary-grid">
                 <div class="metric-card">
                     <div class="metric-label">Property Value</div>
-                    <div class="metric-value">€${(p.price || 0).toLocaleString()}</div>
+                    <div class="metric-value">€${propertyPrice.toLocaleString()}</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-label">Total Project Cost</div>
-                    <div class="metric-value">€${Math.round(totalInvestment).toLocaleString()}</div>
+                    <div class="metric-value">€${Math.round(totalProject).toLocaleString()}</div>
                 </div>
                 
                 <div class="metric-card ${eligible ? 'highlight' : ''}">
                     <div class="metric-label">Mini PIA Grant</div>
                     <div class="metric-value ${eligible ? 'green' : ''}">
-                        €${grantAmount.toLocaleString()}
+                        €${Math.round(grantAmount).toLocaleString()}
                     </div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-label">Net Investment</div>
-                    <div class="metric-value blue">€${Math.round(yourInvestment).toLocaleString()}</div>
+                    <div class="metric-value blue">€${Math.round(netInvestment).toLocaleString()}</div>
                 </div>
             </div>
         </section>
@@ -481,6 +569,7 @@ exports.handler = async (event, context) => {
                     ${eligible ? '✅ ELIGIBLE FOR MINI PIA GRANT' : '❌ NOT ELIGIBLE FOR MINI PIA GRANT'}
                 </div>
                 ${e.reason ? `<div class="eligibility-details">${e.reason}</div>` : ''}
+                ${!eligible && (!e.details || !e.details.inPuglia) ? '<div class="eligibility-details">Property must be located in Puglia region to qualify for Mini PIA grants</div>' : ''}
             </div>
             
             <!-- Property Overview -->
@@ -493,27 +582,27 @@ exports.handler = async (event, context) => {
                     </tr>
                     <tr>
                         <td>Location</td>
-                        <td>${e.inPuglia ? 'Puglia, Italy' : 'Italy'}</td>
+                        <td>${e.details && e.details.inPuglia ? 'Puglia, Italy' : 'Italy'}</td>
                     </tr>
                     <tr>
                         <td>Property Type</td>
-                        <td>${e.propertyType ? e.propertyType.charAt(0).toUpperCase() + e.propertyType.slice(1) : 'Not specified'}</td>
+                        <td>${e.details && e.details.propertyType ? e.details.propertyType.charAt(0).toUpperCase() + e.details.propertyType.slice(1) : 'Not specified'}</td>
                     </tr>
                     <tr>
                         <td>Built Size</td>
-                        <td>${p.size || 0} m²</td>
+                        <td>${propertySize} m²</td>
                     </tr>
                     <tr>
                         <td>Number of Bedrooms</td>
-                        <td>${p.bedrooms || p.rooms || 0}</td>
+                        <td>${bedrooms}</td>
                     </tr>
                     <tr>
                         <td>Current Condition</td>
-                        <td>${e.buildingCondition ? e.buildingCondition.charAt(0).toUpperCase() + e.buildingCondition.slice(1) : 'To be assessed'}</td>
+                        <td>${e.details && e.details.condition ? e.details.condition.charAt(0).toUpperCase() + e.details.condition.slice(1) : 'To be assessed'}</td>
                     </tr>
                     <tr>
                         <td>Intended Use</td>
-                        <td>${e.tourismUse ? 'Tourism Accommodation (B&B/Hotel)' : 'Private Residence'}</td>
+                        <td>${e.details && e.details.tourismUse ? 'Tourism Accommodation (B&B/Hotel)' : 'Private Residence'}</td>
                     </tr>
                 </table>
             </section>
@@ -529,39 +618,89 @@ exports.handler = async (event, context) => {
                     </tr>
                     <tr>
                         <td>Property Purchase Price</td>
-                        <td>€${(p.price || 0).toLocaleString()}</td>
-                        <td>${((p.price / totalInvestment) * 100).toFixed(1)}%</td>
+                        <td>€${propertyPrice.toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((propertyPrice / totalProject) * 100).toFixed(1) : '0.0'}%</td>
                     </tr>
                     <tr>
-                        <td>Renovation Costs (${p.renovationLevel || p.renovationPerSqm || 0}€/m²)</td>
-                        <td>€${Math.round(r.renovationCosts || (p.size * (p.renovationLevel || 0))).toLocaleString()}</td>
-                        <td>${((r.renovationCosts / totalInvestment) * 100).toFixed(1)}%</td>
+                        <td>Renovation Costs (${renovationPerSqm}€/m²)</td>
+                        <td>€${Math.round(renovationCost).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((renovationCost / totalProject) * 100).toFixed(1) : '0.0'}%</td>
                     </tr>
                     <tr>
-                        <td>Technical Direction & Professional Fees</td>
-                        <td>€${Math.round((r.technicalDirector || 0) + (r.businessConsultants || 0)).toLocaleString()}</td>
-                        <td>${(((r.technicalDirector + r.businessConsultants) / totalInvestment) * 100).toFixed(1)}%</td>
+                        <td>Equipment & Furnishings</td>
+                        <td>€${Math.round(equipment).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((equipment / totalProject) * 100).toFixed(1) : '0.0'}%</td>
                     </tr>
                     <tr>
-                        <td>Taxes & Registration Fees</td>
-                        <td>€${Math.round(r.taxesAndFees || 0).toLocaleString()}</td>
-                        <td>${((r.taxesAndFees / totalInvestment) * 100).toFixed(1)}%</td>
+                        <td>Innovation & Technology</td>
+                        <td>€${Math.round(innovation).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((innovation / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr>
+                        <td>Environmental/Energy</td>
+                        <td>€${Math.round(environmental).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((environmental / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr>
+                        <td>Design & Project Management (6%)</td>
+                        <td>€${Math.round(designPm).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((designPm / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr>
+                        <td>Preliminary Studies (1.5%)</td>
+                        <td>€${Math.round(preliminaryStudies).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((preliminaryStudies / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr style="background: #f9fafb;">
+                        <td><strong>Subtotal Eligible Costs</strong></td>
+                        <td><strong>€${Math.round(totalEligible).toLocaleString()}</strong></td>
+                        <td><strong>${totalProject > 0 ? ((totalEligible / totalProject) * 100).toFixed(1) : '0.0'}%</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Agency Fees (3%)</td>
+                        <td>€${Math.round(agencyFee).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((agencyFee / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr>
+                        <td>Registration Tax (9%)</td>
+                        <td>€${Math.round(registrationTax).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((registrationTax / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr>
+                        <td>Notary Fees (2.5%)</td>
+                        <td>€${Math.round(notaryFee).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((notaryFee / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr>
+                        <td>Business Consulting</td>
+                        <td>€${Math.round(consultingFee).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((consultingFee / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr style="background: #f9fafb;">
+                        <td><strong>Subtotal Non-Eligible</strong></td>
+                        <td><strong>€${Math.round(totalNonEligible).toLocaleString()}</strong></td>
+                        <td><strong>${totalProject > 0 ? ((totalNonEligible / totalProject) * 100).toFixed(1) : '0.0'}%</strong></td>
                     </tr>
                     <tr style="font-weight: 700; background: #f9fafb;">
                         <td>Total Project Cost</td>
-                        <td>€${Math.round(totalInvestment).toLocaleString()}</td>
+                        <td>€${Math.round(totalProject).toLocaleString()}</td>
                         <td>100%</td>
                     </tr>
                     ${eligible ? `
                     <tr style="color: #059669; font-weight: 700;">
-                        <td>Mini PIA Grant (45% of eligible costs)</td>
-                        <td>- €${grantAmount.toLocaleString()}</td>
-                        <td>-${((grantAmount / totalInvestment) * 100).toFixed(1)}%</td>
+                        <td>Mini PIA Grant (45% of eligible)</td>
+                        <td>- €${Math.round(grantAmount).toLocaleString()}</td>
+                        <td>-${totalProject > 0 ? ((grantAmount / totalProject) * 100).toFixed(1) : '0.0'}%</td>
+                    </tr>
+                    <tr style="color: #3b82f6; font-weight: 700;">
+                        <td>Tax Credit (15% of eligible)</td>
+                        <td>- €${Math.round(taxCredit).toLocaleString()}</td>
+                        <td>-${totalProject > 0 ? ((taxCredit / totalProject) * 100).toFixed(1) : '0.0'}%</td>
                     </tr>
                     <tr style="font-weight: 700; background: #f0fdf4;">
                         <td>Your Net Investment</td>
-                        <td>€${Math.round(yourInvestment).toLocaleString()}</td>
-                        <td>${((yourInvestment / totalInvestment) * 100).toFixed(1)}%</td>
+                        <td>€${Math.round(netInvestment).toLocaleString()}</td>
+                        <td>${totalProject > 0 ? ((netInvestment / totalProject) * 100).toFixed(1) : '0.0'}%</td>
                     </tr>
                     ` : ''}
                 </table>
@@ -580,7 +719,7 @@ exports.handler = async (event, context) => {
                         </div>
                         <div class="projection-item">
                             <span>Property Appreciation</span>
-                            <strong>€${Math.round(r.capitalGain || 0).toLocaleString()}</strong>
+                            <strong>€${Math.round(capitalGain).toLocaleString()}</strong>
                         </div>
                         <div class="projection-item">
                             <span>Future Value (5 years)</span>
@@ -616,7 +755,7 @@ exports.handler = async (event, context) => {
                         </div>
                         <div class="projection-item">
                             <span>5-Year Net Cash Flow</span>
-                            <strong>€${Math.round((annualRental * 5) - yourInvestment).toLocaleString()}</strong>
+                            <strong ${fiveYearCashFlow < 0 ? 'style="color: #ef4444;"' : ''}>€${Math.round(fiveYearCashFlow).toLocaleString()}</strong>
                         </div>
                     </div>
                 </div>
@@ -644,7 +783,9 @@ exports.handler = async (event, context) => {
                     </div>
                 </div>
                 <p style="margin-top: 16px; color: #6b7280;">
-                    Puglia's tourism market shows consistent growth with government support for tourism infrastructure development.
+                    ${eligible ? 
+                    "Puglia's tourism market shows consistent growth with government support for tourism infrastructure development." :
+                    "Consider properties in Puglia to access Mini PIA grants and reduce funding risk."}
                 </p>
             </section>
             
@@ -656,16 +797,17 @@ exports.handler = async (event, context) => {
                     <li><strong>Property Due Diligence:</strong> Conduct professional property survey and title verification</li>
                     <li><strong>Grant Application:</strong> Prepare Mini PIA application with required documentation</li>
                     <li><strong>Project Planning:</strong> Develop detailed architectural plans for tourism use</li>
-                    <li><strong>Financing:</strong> Secure funding for your ${Math.round((yourInvestment/totalInvestment)*100)}% contribution</li>
+                    <li><strong>Financing:</strong> Secure funding for your €${Math.round(netInvestment).toLocaleString()} contribution</li>
                     <li><strong>Legal Structure:</strong> Establish appropriate business entity for tourism operations</li>
                     <li><strong>Timeline:</strong> Mini PIA applications typically process within 90-120 days</li>
                 </ol>
                 ` : `
                 <ul style="line-height: 2; font-size: 16px;">
+                    <li><strong>Location Requirement:</strong> Property must be located in Puglia region for Mini PIA eligibility</li>
                     <li><strong>Alternative Properties:</strong> Consider properties in Puglia that meet Mini PIA requirements</li>
-                    <li><strong>Eligibility Review:</strong> Minimum 5 bedrooms required for B&B classification</li>
+                    <li><strong>Eligibility Review:</strong> Minimum 5 bedrooms required for non-hotel B&B classification</li>
                     <li><strong>Other Incentives:</strong> Explore alternative regional grant programs</li>
-                    <li><strong>Private Financing:</strong> Evaluate investment without government grants</li>
+                    <li><strong>Private Financing:</strong> Current project requires €${Math.round(totalProject).toLocaleString()} without grants</li>
                 </ul>
                 `}
             </section>
@@ -713,7 +855,7 @@ exports.handler = async (event, context) => {
             
             <div class="disclaimer">
                 <p><strong>Important Disclaimer:</strong></p>
-                <p>This report is provided for informational purposes only and does not constitute financial, investment, or legal advice. All calculations are estimates based on current market conditions and regulatory frameworks. Actual results may vary. Government grant availability and terms are subject to change. We strongly recommend consulting with qualified legal, tax, and financial advisors before making any investment decisions.</p>
+                <p>This report is provided for informational purposes only and does not constitute financial, investment, or legal advice. All calculations are estimates based on current market conditions and regulatory frameworks. Actual results may vary. Government grant availability and terms are subject to change. Mini PIA grants require properties to be located in Puglia region and meet specific eligibility criteria. We strongly recommend consulting with qualified legal, tax, and financial advisors before making any investment decisions.</p>
                 <p style="margin-top: 16px;">© ${new Date().getFullYear()} InvestiScope™. All rights reserved. This report is confidential and intended solely for the named recipient.</p>
             </div>
         </footer>
