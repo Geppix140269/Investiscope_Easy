@@ -157,12 +157,12 @@
             
             // Initialize external services
             initializeServices() {
-                // Initialize EmailJS
+                // Initialize EmailJS with CORRECT public key
                 try {
                     if (typeof emailjs !== 'undefined') {
-                        emailjs.init('9z0xuXlzrG8-D4zd1');
+                        emailjs.init('wKn1_xMCtZssdZzpb'); // Fixed: Using your actual public key
                         emailjsInitialized = true;
-                        console.log('EmailJS initialized');
+                        console.log('EmailJS initialized successfully');
                     }
                 } catch (error) {
                     console.error('EmailJS initialization failed:', error);
@@ -175,7 +175,7 @@
                             'https://kjyobkrjcmiuusijvrme.supabase.co',
                             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqeW9ia3JqY21pdXVzaWp2cm1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NDM5NzMsImV4cCI6MjA2NjUxOTk3M30.2GxAUtXPal7ufxg7KgWMO7h15RXJOolBWt0-NPygj2I'
                         );
-                        console.log('Supabase initialized');
+                        console.log('Supabase initialized successfully');
                     }
                 } catch (error) {
                     console.error('Supabase initialization failed:', error);
@@ -227,6 +227,8 @@
             
             // Render registration form
             renderForm() {
+                console.log('Rendering form with property data:', propertyData);
+                
                 const eligible = propertyData.eligibility?.eligible || false;
                 const totalInvestment = propertyData.calculations?.totalProject || 0;
                 const grantAmount = eligible ? (propertyData.calculations?.grant || 0) : 0;
@@ -348,6 +350,9 @@
                 // Generate analysis ID
                 const analysisId = `ISL-${Date.now().toString(36).toUpperCase()}`;
                 
+                console.log('Submitting form with data:', formData);
+                console.log('Property data:', propertyData);
+                
                 try {
                     // Prepare email parameters
                     const emailParams = {
@@ -372,19 +377,25 @@
                         report_link: `https://kjyobkrjcmiuusijvrme.supabase.co/functions/v1/report-viewer?id=${analysisId}`
                     };
                     
+                    console.log('Email parameters:', emailParams);
+                    
                     // Try to send email
                     if (emailjsInitialized) {
                         try {
-                            await emailjs.send('service_w6tghqr', 'template_evcgfsm', emailParams);
-                            console.log('Email sent successfully');
+                            console.log('Sending email via EmailJS...');
+                            const response = await emailjs.send('service_w6tghqr', 'template_evcgfsm', emailParams);
+                            console.log('Email sent successfully:', response);
                         } catch (error) {
                             console.error('Email send error:', error);
                         }
+                    } else {
+                        console.warn('EmailJS not initialized, skipping email send');
                     }
                     
                     // Try to save to database
                     if (supabaseClient) {
                         try {
+                            console.log('Saving to Supabase...');
                             const { data, error } = await supabaseClient
                                 .from('investiscope_leads')
                                 .insert({
@@ -398,13 +409,15 @@
                                 });
                             
                             if (!error) {
-                                console.log('Data saved to database');
+                                console.log('Data saved to database successfully');
                             } else {
                                 console.error('Database save error:', error);
                             }
                         } catch (error) {
                             console.error('Database error:', error);
                         }
+                    } else {
+                        console.warn('Supabase not initialized, skipping database save');
                     }
                     
                     // Create final output
@@ -502,14 +515,18 @@
         
         // Listen for property data
         window.addEventListener('message', (event) => {
+            console.log('Email module received message:', event.data);
+            
             if (event.data.type === 'LOAD_PROPERTY_DATA') {
                 propertyData = event.data.data;
+                console.log('Property data loaded:', propertyData);
                 EmailDatabaseModule.render();
             }
         });
         
         // Initialize on load
         window.addEventListener('DOMContentLoaded', function() {
+            console.log('Email/Database module loading...');
             EmailDatabaseModule.init();
         });
     </script>
