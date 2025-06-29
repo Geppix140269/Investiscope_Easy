@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eligibility Checker Module</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 10s ease infinite;
+            min-height: 100vh;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .question-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .fade-in { 
+            animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        
+        .slide-up {
+            animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(20px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .option-button {
+            background: rgba(255, 255, 255, 0.95);
+            color: #374151;
+            padding: 20px 28px;
+            border-radius: 16px;
+            border: 2px solid transparent;
+            font-size: 17px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            text-align: center;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .option-button:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            border-color: #667eea;
+            background: white;
+        }
+        
+        .option-button.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            padding: 18px 36px;
+            border-radius: 16px;
+            border: none;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(5, 150, 105, 0.45);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .result-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #f3f4f6 100%);
+            padding: 24px;
+            border-radius: 18px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .grant-box {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 36px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 12px 40px rgba(16, 185, 129, 0.25);
+        }
+        
+        .warning-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+            padding: 24px;
+            border-radius: 18px;
+            margin-bottom: 28px;
+        }
+        
+        .error-box {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 2px solid #ef4444;
+            padding: 24px;
+            border-radius: 18px;
+            margin-bottom: 28px;
+        }
+        
+        @media (max-width: 640px) {
+            .glass-card { padding: 28px; }
+        }
+    </style>
+</head>
+<body class="gradient-bg">
+    <div id="app" class="fade-in" style="max-width: 700px; margin: 0 auto; padding: 24px;">
+        <!-- Content will be rendered here -->
+    </div>
+
+    <script>
+        const EligibilityModule = {
+            // Data storage
+            calculatorData: null,
+            answers: {},
+            currentQuestionIndex: 0,
+            
+            questions: [
+                {
+                    key: 'inPuglia',
+                    question: 'Is the property located in Puglia?',
+                    options: [
+                        { value: true, label: 'Yes, in Puglia', icon: '✅' },
+                        { value: false, label: 'No, elsewhere in Italy', icon: '❌' }
+                    ]
+                },
+                {
+                    key: 'propertyType',
+                    question: 'What type of property is it?',
+                    options: [
+                        { value: 'historic', label: 'Historic (Masseria, Trullo, Palace)', icon: '🏛️' },
+                        { value: 'rural', label: 'Rural building', icon: '🏚️' },
+                        { value: 'abandoned', label: 'Abandoned/Unfinished', icon: '🏗️' },
+                        { value: 'modern', label: 'Modern building', icon: '🏢' },
+                        { value: 'hotel', label: 'Existing hotel', icon: '🏨' }
+                    ]
+                },
+                {
+                    key: 'condition',
+                    question: 'What is the current condition?',
+                    options: [
+                        { value: 'abandoned', label: 'Abandoned (3+ years)', icon: '🏚️' },
+                        { value: 'needsWork', label: 'Needs major renovation', icon: '🔨' },
+                        { value: 'minor', label: 'Needs minor updates', icon: '🔧' },
+                        { value: 'perfect', label: 'Move-in ready', icon: '✨' }
+                    ]
+                },
+                {
+                    key: 'tourismUse',
+                    question: 'Will it be used for tourism accommodation?',
+                    options: [
+                        { value: true, label: 'Yes, B&B/Hotel/Holiday rental', icon: '🏖️' },
+                        { value: false, label: 'No, private residence only', icon: '🏠' }
+                    ]
+                }
+            ],
+            
+            // Initialize
+            init() {
+                this.render();
+            },
+            
+            // Main render function
+            render() {
+                const app = document.getElementById('app');
+                
+                if (!this.calculatorData) {
+                    app.innerHTML = this.renderWaiting();
+                } else if (this.currentQuestionIndex < this.questions.length) {
+                    app.innerHTML = this.renderQuestion();
+                } else {
+                    app.innerHTML = this.renderResults();
+                }
+            },
+            
+            // Render waiting for data
+            renderWaiting() {
+                return `
+                    <div style="text-align: center; padding: 100px 20px;">
+                        <div style="background: rgba(255,255,255,0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                            <span style="font-size: 40px;">⏳</span>
+                        </div>
+                        <h2 style="color: white; font-size: 28px; margin-bottom: 16px;">Waiting for Calculator Data</h2>
+                        <p style="color: rgba(255,255,255,0.8); font-size: 18px;">Complete the property calculator first...</p>
+                    </div>
+                `;
+            },
+            
+            // Render current question
+            renderQuestion() {
+                const question = this.questions[this.currentQuestionIndex];
+                const progress = ((this.currentQuestionIndex + 1) / this.questions.length) * 100;
+                
+                return `
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <h1 style="font-size: 44px; font-weight: 200; color: white; margin-bottom: 16px;">
+                            Mini PIA Eligibility Check
+                        </h1>
+                        <p style="font-size: 19px; color: rgba(255,255,255,0.9);">
+                            Question ${this.currentQuestionIndex + 1} of ${this.questions.length}
+                        </p>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                    
+                    <div class="question-card slide-up">
+                        <h2 style="font-size: 28px; font-weight: 600; color: white; margin-bottom: 32px; text-align: center;">
+                            ${question.question}
+                        </h2>
+                        
+                        <div style="display: grid; gap: 16px;">
+                            ${question.options.map(option => `
+                                <button class="option-button" onclick="EligibilityModule.answer('${question.key}', ${JSON.stringify(option.value).replace(/"/g, '&quot;')})">
+                                    <span style="font-size: 28px; margin-right: 16px; vertical-align: middle;">${option.icon}</span>
+                                    <span style="vertical-align: middle;">${option.label}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    ${this.currentQuestionIndex > 0 ? `
+                        <div style="text-align: center; margin-top: 32px;">
+                            <button onclick="EligibilityModule.goBack()" 
+                                style="background: rgba(255,255,255,0.15); color: white; padding: 14px 28px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.3); font-size: 15px; cursor: pointer; transition: all 0.3s;">
+                                ← Previous Question
+                            </button>
+                        </div>
+                    ` : ''}
+                `;
+            },
+            
+            // Render results
+            renderResults() {
+                const eligibility = this.calculateEligibility();
+                const enhancedData = this.createEnhancedData(eligibility);
+                
+                return `
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <h1 style="font-size: 44px; font-weight: 200; color: white; margin-bottom: 16px;">
+                            Eligibility Results
+                        </h1>
+                    </div>
+                    
+                    ${eligibility.eligible ? `
+                        <div class="grant-box slide-up" style="margin-bottom: 32px;">
+                            <h2 style="font-size: 32px; font-weight: 700; margin-bottom: 16px;">
+                                ✅ Eligible for Mini PIA!
+                            </h2>
+                            <p style="font-size: 20px; opacity: 0.95; margin-bottom: 24px;">
+                                ${eligibility.reason}
+                            </p>
+                            <div style="background: rgba(255,255,255,0.2); padding: 24px; border-radius: 16px;">
+                                <div style="font-size: 18px; margin-bottom: 8px;">Potential Grant Amount</div>
+                                <div style="font-size: 48px; font-weight: 800;">€${this.calculatorData.calculations.grant.toLocaleString()}</div>
+                            </div>
+                            <p style="margin-top: 24px; font-size: 16px; opacity: 0.9;">
+                                Subject to property survey and final verification
+                            </p>
+                        </div>
+                    ` : `
+                        <div class="error-box slide-up">
+                            <h2 style="color: #991b1b; font-size: 28px; font-weight: 600; margin-bottom: 12px;">
+                                ❌ Not Eligible for Mini PIA
+                            </h2>
+                            <p style="color: #7f1d1d; font-size: 18px; margin: 0;">
+                                ${eligibility.reason}
+                            </p>
+                        </div>
+                    `}
+                    
+                    <div class="glass-card">
+                        <h3 style="font-size: 24px; font-weight: 600; margin-bottom: 24px;">What's Next?</h3>
+                        
+                        ${eligibility.eligible ? `
+                            <div style="background: #f0fdf4; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                                <h4 style="color: #059669; margin-bottom: 12px;">✅ Your property qualifies!</h4>
+                                <p style="color: #166534; margin: 0;">Continue to get your detailed report with grant application guidance.</p>
+                            </div>
+                        ` : `
+                            <div style="background: #fef3c7; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                                <h4 style="color: #92400e; margin-bottom: 12px;">Alternative Options Available</h4>
+                                <ul style="color: #78350f; margin: 0; padding-left: 20px;">
+                                    <li>Consider properties in Puglia for Mini PIA eligibility</li>
+                                    <li>Look for properties needing renovation</li>
+                                    <li>Ensure minimum 5 bedrooms for B&B classification</li>
+                                </ul>
+                            </div>
+                        `}
+                        
+                        <button onclick="EligibilityModule.proceedToNext()" class="btn-primary" style="width: 100%;">
+                            Continue to Get Report →
+                        </button>
+                    </div>
+                `;
+            },
+            
+            // Process answer
+            answer(key, value) {
+                this.answers[key] = value;
+                
+                // Check for immediate disqualification
+                if ((key === 'inPuglia' && !value) || (key === 'tourismUse' && !value)) {
+                    // Skip remaining questions
+                    this.currentQuestionIndex = this.questions.length;
+                } else {
+                    this.currentQuestionIndex++;
+                }
+                
+                this.render();
+            },
+            
+            // Go back
+            goBack() {
+                if (this.currentQuestionIndex > 0) {
+                    this.currentQuestionIndex--;
+                    this.render();
+                }
+            },
+            
+            // Calculate eligibility
+            calculateEligibility() {
+                const { inPuglia, propertyType, condition, tourismUse } = this.answers;
+                const bedrooms = this.calculatorData?.inputs?.bedrooms || 0;
+                
+                // Immediate disqualifiers
+                if (!inPuglia) return { eligible: false, reason: "Property must be located in Puglia region", score: 0 };
+                if (!tourismUse) return { eligible: false, reason: "Property must be used for tourism accommodation", score: 0 };
+                if (propertyType === 'modern' && condition === 'perfect') 
+                    return { eligible: false, reason: "Modern buildings in perfect condition are not eligible", score: 0 };
+                if (bedrooms < 5 && propertyType !== 'hotel') 
+                    return { eligible: false, reason: `Non-hotel accommodations require minimum 5 bedrooms (currently ${bedrooms})`, score: 0 };
+                
+                // Calculate score
+                let score = 0;
+                let reasons = [];
+                
+                // Property type scoring
+                if (propertyType === 'historic') {
+                    score += 3;
+                    reasons.push("Historic property (Masseria/Trullo)");
+                } else if (propertyType === 'abandoned') {
+                    score += 3;
+                    reasons.push("Abandoned property revival");
+                } else if (propertyType === 'rural') {
+                    score += 2;
+                    reasons.push("Rural building conversion");
+                } else if (propertyType === 'hotel') {
+                    score += 2;
+                    reasons.push("Existing tourism structure");
+                } else if (propertyType === 'modern') {
+                    score += 1;
+                    reasons.push("Modern building");
+                }
+                
+                // Condition scoring
+                if (condition === 'abandoned') {
+                    score += 3;
+                    reasons.push("abandoned 3+ years");
+                } else if (condition === 'needsWork') {
+                    score += 2;
+                    reasons.push("needs major renovation");
+                } else if (condition === 'minor') {
+                    score += 1;
+                    reasons.push("needs updates");
+                }
+                
+                // Final determination
+                const eligible = score >= 3;
+                const eligibilityLevel = score >= 5 ? 'High' : score >= 3 ? 'Medium' : 'Low';
+                
+                return {
+                    eligible,
+                    score,
+                    level: eligibilityLevel,
+                    reason: reasons.join(", ") + " for tourism use",
+                    details: this.answers
+                };
+            },
+            
+            // Create enhanced data
+            createEnhancedData(eligibility) {
+                const enhancedData = {
+                    ...this.calculatorData,
+                    eligibility: eligibility,
+                    timestamp: new Date().toISOString(),
+                    recommendations: this.getRecommendations(eligibility)
+                };
+                
+                // Update grant amount based on eligibility
+                if (!eligibility.eligible) {
+                    enhancedData.calculations.grant = 0;
+                    enhancedData.calculations.yourCost = enhancedData.calculations.totalProject;
+                }
+                
+                return enhancedData;
+            },
+            
+            // Get recommendations
+            getRecommendations(eligibility) {
+                if (!eligibility.eligible) {
+                    return ["Property does not meet Mini PIA requirements"];
+                }
+                
+                return [
+                    "Schedule professional property survey",
+                    "Prepare renovation project documentation",
+                    "Consult with Mini PIA application specialist",
+                    "Begin architectural planning for tourism use"
+                ];
+            },
+            
+            // Proceed to next module
+            proceedToNext() {
+                const eligibility = this.calculateEligibility();
+                const enhancedData = this.createEnhancedData(eligibility);
+                
+                // Send data to parent frame
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'ELIGIBILITY_COMPLETE',
+                        data: enhancedData
+                    }, '*');
+                }
+            }
+        };
+        
+        // Listen for calculator data
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'LOAD_CALCULATOR_DATA') {
+                EligibilityModule.calculatorData = event.data.data;
+                EligibilityModule.render();
+            }
+        });
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', function() {
+            EligibilityModule.init();
+        });
+    </script>
+</body>
+</html>
