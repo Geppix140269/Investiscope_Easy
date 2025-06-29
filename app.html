@@ -42,52 +42,69 @@
             const iframe = document.getElementById('active-module');
             iframe.src = modules[moduleName];
             appState.currentModule = moduleName;
+            console.log('Loading module:', moduleName);
         }
 
         // Listen for messages from modules
         window.addEventListener('message', (event) => {
-            // Security check - update this to your actual domain
-            // if (event.origin !== 'https://your-site.netlify.app') return;
-
+            // Log all messages for debugging
+            console.log('Parent received message:', event.data);
+            
             const { type, data } = event.data;
 
             switch(type) {
                 case 'CALCULATOR_COMPLETE':
                     // Calculator finished, save data and load eligibility
+                    console.log('Calculator data received:', data);
                     appState.data.calculations = data;
                     loadModule('eligibility');
-                    // Pass data to eligibility module
+                    // Pass data to eligibility module with increased delay
                     setTimeout(() => {
+                        console.log('Sending calculator data to eligibility module');
                         document.getElementById('active-module').contentWindow.postMessage({
                             type: 'LOAD_CALCULATOR_DATA',
                             data: appState.data.calculations
                         }, '*');
-                    }, 1000);
+                    }, 1500);
                     break;
 
                 case 'ELIGIBILITY_COMPLETE':
-                    // Eligibility finished, save data and load email/db
-                    appState.data.eligibility = data;
+                    // Eligibility finished, save complete enhanced data
+                    console.log('Eligibility data received:', data);
+                    appState.data = data; // Store the complete enhanced data object
                     loadModule('emaildb');
-                    // Pass combined data to email module
+                    // Pass complete data to email module with increased delay
                     setTimeout(() => {
+                        console.log('Sending complete data to email module:', appState.data);
                         document.getElementById('active-module').contentWindow.postMessage({
                             type: 'LOAD_PROPERTY_DATA',
                             data: appState.data
                         }, '*');
-                    }, 1000);
+                    }, 2000); // Increased delay to ensure module loads
                     break;
 
                 case 'REGISTRATION_COMPLETE':
                     // All done - show thank you or redirect
+                    console.log('Registration complete:', data);
                     alert('Analysis complete! Check your email for the full report.');
                     // Optionally restart
-                    loadModule('calculator');
+                    setTimeout(() => {
+                        if (confirm('Would you like to analyze another property?')) {
+                            appState.data = {};
+                            loadModule('calculator');
+                        }
+                    }, 1000);
                     break;
             }
         });
 
+        // Error handling for iframe
+        window.addEventListener('error', (event) => {
+            console.error('Error in parent frame:', event);
+        });
+
         // Start the app
+        console.log('Starting InvestiScope Light app');
         loadModule('calculator');
     </script>
 </body>
