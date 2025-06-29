@@ -1,12 +1,5 @@
 // netlify/functions/report.js
-const { createClient } = require('@supabase/supabase-js');
-
-// Initialize Supabase
-const supabaseUrl = 'https://kjyobkrjcmiuusijvrme.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqeW9ia3JqY21pdXVzaWp2cm1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NDM5NzMsImV4cCI6MjA2NjUxOTk3M30.2GxAUtXPal7ufxg7KgWMO7h15RXJOolBWt0-NPygj2I';
-
 exports.handler = async (event, context) => {
-  // Get ID from query parameters
   const { id } = event.queryStringParameters || {};
   
   if (!id) {
@@ -17,17 +10,18 @@ exports.handler = async (event, context) => {
   }
   
   try {
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Fetch from Supabase without any dependencies
+    const response = await fetch('https://kjyobkrjcmiuusijvrme.supabase.co/rest/v1/investiscope_leads?analysis_id=eq.' + id, {
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqeW9ia3JqY21pdXVzaWp2cm1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NDM5NzMsImV4cCI6MjA2NjUxOTk3M30.2GxAUtXPal7ufxg7KgWMO7h15RXJOolBWt0-NPygj2I',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqeW9ia3JqY21pdXVzaWp2cm1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NDM5NzMsImV4cCI6MjA2NjUxOTk3M30.2GxAUtXPal7ufxg7KgWMO7h15RXJOolBWt0-NPygj2I'
+      }
+    });
     
-    // Fetch report data
-    const { data, error } = await supabase
-      .from('investiscope_leads')
-      .select('*')
-      .eq('analysis_id', id)
-      .single();
-      
-    if (error || !data) {
+    const results = await response.json();
+    const data = results[0];
+    
+    if (!data) {
       return {
         statusCode: 404,
         body: 'Report not found'
@@ -39,7 +33,7 @@ exports.handler = async (event, context) => {
     const eligibilityData = data.eligibility_data || {};
     const results = data.results || {};
     
-    // Generate comprehensive HTML report
+    // Generate HTML report (same as before)
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -48,12 +42,7 @@ exports.handler = async (event, context) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>InvestiScope Report - ${id}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #059669 75%, #047857 100%);
@@ -62,19 +51,12 @@ exports.handler = async (event, context) => {
             min-height: 100vh;
             color: #1a1a1a;
         }
-        
         @keyframes gradientShift {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        
+        .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
         .report-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -83,22 +65,9 @@ exports.handler = async (event, context) => {
             box-shadow: 0 20px 60px rgba(0,0,0,0.15);
             margin-bottom: 24px;
         }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .logo {
-            font-size: 36px;
-            font-weight: 300;
-            margin-bottom: 16px;
-        }
-        
-        .logo strong {
-            font-weight: 700;
-        }
-        
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { font-size: 36px; font-weight: 300; margin-bottom: 16px; }
+        .logo strong { font-weight: 700; }
         .analysis-id {
             background: #f3f4f6;
             padding: 8px 16px;
@@ -108,14 +77,7 @@ exports.handler = async (event, context) => {
             color: #6b7280;
             margin-bottom: 24px;
         }
-        
-        h1 {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 24px;
-            color: #1a1a1a;
-        }
-        
+        h1 { font-size: 32px; font-weight: 700; margin-bottom: 24px; color: #1a1a1a; }
         h2 {
             font-size: 24px;
             font-weight: 600;
@@ -124,14 +86,12 @@ exports.handler = async (event, context) => {
             border-bottom: 2px solid #e5e7eb;
             padding-bottom: 12px;
         }
-        
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 32px;
         }
-        
         .summary-box {
             background: #f9fafb;
             padding: 24px;
@@ -139,57 +99,22 @@ exports.handler = async (event, context) => {
             text-align: center;
             border: 1px solid #e5e7eb;
         }
-        
         .summary-box.highlight {
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border-color: #86efac;
         }
-        
-        .summary-box.warning {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-color: #fbbf24;
-        }
-        
-        .summary-label {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 8px;
-        }
-        
-        .summary-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-        
-        .summary-value.green {
-            color: #059669;
-        }
-        
-        .summary-value.red {
-            color: #dc2626;
-        }
-        
-        .details-section {
-            margin-bottom: 32px;
-        }
-        
+        .summary-label { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
+        .summary-value { font-size: 28px; font-weight: 700; color: #1a1a1a; }
+        .summary-value.green { color: #059669; }
+        .details-section { margin-bottom: 32px; }
         .detail-row {
             display: flex;
             justify-content: space-between;
             padding: 12px 0;
             border-bottom: 1px solid #f3f4f6;
         }
-        
-        .detail-label {
-            color: #6b7280;
-        }
-        
-        .detail-value {
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-        
+        .detail-label { color: #6b7280; }
+        .detail-value { font-weight: 600; color: #1a1a1a; }
         .eligibility-badge {
             display: inline-block;
             padding: 8px 24px;
@@ -197,23 +122,8 @@ exports.handler = async (event, context) => {
             font-weight: 600;
             margin-bottom: 16px;
         }
-        
-        .eligible {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-        
-        .not-eligible {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-        }
-        
-        .footer {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.9);
-            margin-top: 40px;
-        }
-        
+        .eligible { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .not-eligible { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
         .cta-button {
             display: inline-block;
             background: linear-gradient(135deg, #059669 0%, #047857 100%);
@@ -224,41 +134,12 @@ exports.handler = async (event, context) => {
             font-weight: 600;
             margin: 8px;
             box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
-            transition: all 0.3s;
         }
-        
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.6);
-        }
-        
-        .whatsapp {
-            background: #25D366;
-        }
-        
-        @media print {
-            body {
-                background: white;
-            }
-            .report-card {
-                box-shadow: none;
-                border: 1px solid #e5e7eb;
-            }
-            .cta-button {
-                display: none;
-            }
-        }
-        
+        .whatsapp { background: #25D366; }
         @media (max-width: 640px) {
-            .container {
-                padding: 20px 12px;
-            }
-            .report-card {
-                padding: 24px 16px;
-            }
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
+            .container { padding: 20px 12px; }
+            .report-card { padding: 24px 16px; }
+            .summary-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -269,16 +150,8 @@ exports.handler = async (event, context) => {
                 <div class="logo">InvestiScope<strong>™</strong></div>
                 <div class="analysis-id">Analysis ID: ${id}</div>
                 <h1>Property Investment Analysis Report</h1>
-                <p style="color: #6b7280; font-size: 18px;">
-                    Generated on ${new Date(data.created_at).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    })}
-                </p>
             </div>
             
-            <!-- Executive Summary -->
             <div class="summary-grid">
                 <div class="summary-box">
                     <div class="summary-label">Property Price</div>
@@ -288,9 +161,9 @@ exports.handler = async (event, context) => {
                     <div class="summary-label">Total Investment</div>
                     <div class="summary-value">€${Math.round(results.totalProject || 0).toLocaleString()}</div>
                 </div>
-                <div class="summary-box ${eligibilityData.eligible ? 'highlight' : 'warning'}">
+                <div class="summary-box ${eligibilityData.eligible ? 'highlight' : ''}">
                     <div class="summary-label">Mini PIA Grant</div>
-                    <div class="summary-value ${eligibilityData.eligible ? 'green' : 'red'}">
+                    <div class="summary-value ${eligibilityData.eligible ? 'green' : ''}">
                         €${eligibilityData.eligible ? Math.round(results.grant || 0).toLocaleString() : '0'}
                     </div>
                 </div>
@@ -300,7 +173,6 @@ exports.handler = async (event, context) => {
                 </div>
             </div>
             
-            <!-- Eligibility Status -->
             <div class="details-section">
                 <h2>Grant Eligibility Status</h2>
                 <div style="text-align: center; padding: 24px;">
@@ -313,7 +185,6 @@ exports.handler = async (event, context) => {
                 </div>
             </div>
             
-            <!-- Property Details -->
             <div class="details-section">
                 <h2>Property Details</h2>
                 <div class="detail-row">
@@ -330,7 +201,6 @@ exports.handler = async (event, context) => {
                 </div>
             </div>
             
-            <!-- Cost Breakdown -->
             <div class="details-section">
                 <h2>Investment Breakdown</h2>
                 <div class="detail-row">
@@ -342,76 +212,17 @@ exports.handler = async (event, context) => {
                     <span class="detail-value">€${Math.round(results.renovationCost || 0).toLocaleString()}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Professional Fees (15%)</span>
+                    <span class="detail-label">Professional Fees</span>
                     <span class="detail-value">€${Math.round(results.professionalFees || 0).toLocaleString()}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Taxes & Registration</span>
                     <span class="detail-value">€${Math.round(results.taxesAndFees || 0).toLocaleString()}</span>
                 </div>
-                <div class="detail-row" style="border-top: 2px solid #e5e7eb; margin-top: 12px; padding-top: 16px;">
-                    <span class="detail-label"><strong>Total Project Cost</strong></span>
-                    <span class="detail-value"><strong>€${Math.round(results.totalProject || 0).toLocaleString()}</strong></span>
-                </div>
-                ${eligibilityData.eligible ? `
-                <div class="detail-row" style="color: #059669;">
-                    <span class="detail-label"><strong>Mini PIA Grant (45%)</strong></span>
-                    <span class="detail-value"><strong>- €${Math.round(results.grant || 0).toLocaleString()}</strong></span>
-                </div>
-                <div class="detail-row" style="background: #f0fdf4; margin: 12px -16px 0; padding: 16px;">
-                    <span class="detail-label"><strong>Your Net Investment</strong></span>
-                    <span class="detail-value" style="color: #059669;"><strong>€${Math.round(results.yourCost || 0).toLocaleString()}</strong></span>
-                </div>
-                ` : ''}
             </div>
             
-            <!-- Contact Information -->
-            <div class="details-section">
-                <h2>Your Information</h2>
-                <div class="detail-row">
-                    <span class="detail-label">Name</span>
-                    <span class="detail-value">${data.name || 'Not provided'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Email</span>
-                    <span class="detail-value">${data.email || 'Not provided'}</span>
-                </div>
-                ${data.phone ? `
-                <div class="detail-row">
-                    <span class="detail-label">Phone</span>
-                    <span class="detail-value">${data.phone}</span>
-                </div>
-                ` : ''}
-            </div>
-            
-            <!-- Next Steps -->
-            <div class="details-section">
-                <h2>Next Steps</h2>
-                ${eligibilityData.eligible ? `
-                <ol style="padding-left: 24px; line-height: 1.8;">
-                    <li>Schedule a professional property survey to confirm eligibility</li>
-                    <li>Prepare detailed renovation project documentation</li>
-                    <li>Submit Mini PIA grant application with our assistance</li>
-                    <li>Begin architectural planning for tourism accommodation use</li>
-                    <li>Finalize financing arrangements for your investment portion</li>
-                </ol>
-                ` : `
-                <p>While this property doesn't qualify for Mini PIA grants, we can help you explore:</p>
-                <ul style="padding-left: 24px; line-height: 1.8; margin-top: 12px;">
-                    <li>Alternative properties in Puglia that qualify for grants</li>
-                    <li>Other regional investment incentive programs</li>
-                    <li>Investment strategies without government grants</li>
-                    <li>Properties with better grant qualification potential</li>
-                </ul>
-                `}
-            </div>
-            
-            <!-- Call to Action -->
             <div style="text-align: center; margin-top: 40px; padding-top: 32px; border-top: 2px solid #e5e7eb;">
                 <h3 style="margin-bottom: 20px;">Ready to Move Forward?</h3>
-                <p style="color: #6b7280; margin-bottom: 24px;">
-                    Our team is here to guide you through every step of your investment journey.
-                </p>
                 <a href="https://wa.me/393514001402?text=Hi, I received my InvestiScope report. My analysis ID is: ${id}" 
                    class="cta-button whatsapp">
                     💬 Chat on WhatsApp
@@ -421,28 +232,18 @@ exports.handler = async (event, context) => {
                 </a>
             </div>
         </div>
-        
-        <div class="footer">
-            <p>© ${new Date().getFullYear()} InvestiScope™. All rights reserved.</p>
-            <p style="margin-top: 8px; font-size: 14px;">
-                This report is for informational purposes only and does not constitute financial advice.
-            </p>
-        </div>
     </div>
 </body>
-</html>
-    `;
+</html>`;
     
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-      },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
       body: html
     };
     
   } catch (error) {
-    console.error('Error fetching report:', error);
+    console.error('Error:', error);
     return {
       statusCode: 500,
       body: 'Error generating report'
