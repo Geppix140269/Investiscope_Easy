@@ -384,8 +384,7 @@
                         your_cost: (propertyData.calculations?.yourCost || propertyData.calculations?.totalProject || 0).toLocaleString(),
                         roi: (propertyData.returns?.withGrant?.roi || propertyData.returns?.withoutGrant?.roi || 0).toFixed(1),
                         annual_rental: (propertyData.rental?.annualIncome || 0).toLocaleString(),
-                        report_link: `https://kjyobkrjcmiuusijvrme.supabase.co/functions/v1/report-viewer?id=${analysisId}`
-                    };
+report_link: `https://investiscopeeasy.netlify.app/.netlify/functions/report?id=${analysisId}`                    };
                     
                     console.log('Email parameters:', emailParams);
                     
