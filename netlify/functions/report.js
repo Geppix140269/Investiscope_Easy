@@ -10,7 +10,7 @@ exports.handler = async (event, context) => {
   }
   
   try {
-    // Fetch from Supabase without any dependencies
+    // Fetch from Supabase
     const response = await fetch('https://kjyobkrjcmiuusijvrme.supabase.co/rest/v1/investiscope_leads?analysis_id=eq.' + id, {
       headers: {
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqeW9ia3JqY21pdXVzaWp2cm1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NDM5NzMsImV4cCI6MjA2NjUxOTk3M30.2GxAUtXPal7ufxg7KgWMO7h15RXJOolBWt0-NPygj2I',
@@ -18,8 +18,8 @@ exports.handler = async (event, context) => {
       }
     });
     
-    const results = await response.json();
-    const data = results[0];
+    const dataArray = await response.json();
+    const data = dataArray[0];
     
     if (!data) {
       return {
@@ -28,12 +28,12 @@ exports.handler = async (event, context) => {
       };
     }
     
-    // Extract data
+    // Extract data - fixed variable naming
     const propertyData = data.property_data || {};
     const eligibilityData = data.eligibility_data || {};
-    const results = data.results || {};
+    const calcResults = data.results || {}; // Changed from 'results' to 'calcResults'
     
-    // Generate HTML report (same as before)
+    // Generate HTML report
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -159,17 +159,17 @@ exports.handler = async (event, context) => {
                 </div>
                 <div class="summary-box">
                     <div class="summary-label">Total Investment</div>
-                    <div class="summary-value">€${Math.round(results.totalProject || 0).toLocaleString()}</div>
+                    <div class="summary-value">€${Math.round(calcResults.totalProject || 0).toLocaleString()}</div>
                 </div>
                 <div class="summary-box ${eligibilityData.eligible ? 'highlight' : ''}">
                     <div class="summary-label">Mini PIA Grant</div>
                     <div class="summary-value ${eligibilityData.eligible ? 'green' : ''}">
-                        €${eligibilityData.eligible ? Math.round(results.grant || 0).toLocaleString() : '0'}
+                        €${eligibilityData.eligible ? Math.round(calcResults.grant || 0).toLocaleString() : '0'}
                     </div>
                 </div>
                 <div class="summary-box">
                     <div class="summary-label">Your Investment</div>
-                    <div class="summary-value">€${Math.round(results.yourCost || results.totalProject || 0).toLocaleString()}</div>
+                    <div class="summary-value">€${Math.round(calcResults.yourCost || calcResults.totalProject || 0).toLocaleString()}</div>
                 </div>
             </div>
             
@@ -209,15 +209,15 @@ exports.handler = async (event, context) => {
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Renovation Costs</span>
-                    <span class="detail-value">€${Math.round(results.renovationCost || 0).toLocaleString()}</span>
+                    <span class="detail-value">€${Math.round(calcResults.renovationCost || 0).toLocaleString()}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Professional Fees</span>
-                    <span class="detail-value">€${Math.round(results.professionalFees || 0).toLocaleString()}</span>
+                    <span class="detail-value">€${Math.round(calcResults.professionalFees || 0).toLocaleString()}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Taxes & Registration</span>
-                    <span class="detail-value">€${Math.round(results.taxesAndFees || 0).toLocaleString()}</span>
+                    <span class="detail-value">€${Math.round(calcResults.taxesAndFees || 0).toLocaleString()}</span>
                 </div>
             </div>
             
@@ -246,7 +246,7 @@ exports.handler = async (event, context) => {
     console.error('Error:', error);
     return {
       statusCode: 500,
-      body: 'Error generating report'
+      body: 'Error generating report: ' + error.message
     };
   }
 };
