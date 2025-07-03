@@ -873,16 +873,16 @@
                 document.getElementById('breakdown-property').textContent = `€${calc.inputs.price.toLocaleString()}`;
                 document.getElementById('breakdown-renovation').textContent = `€${calc.calculations.renovationCost.toLocaleString()}`;
                 document.getElementById('breakdown-equipment').textContent = `€${(calc.calculations.equipment + calc.calculations.innovation + calc.calculations.environmental).toLocaleString()}`;
-                document.getElementById('breakdown-design').textContent = `€${Math.round(calc.calculations.designPm).toLocaleString()}`;
-                document.getElementById('breakdown-studies').textContent = `€${Math.round(calc.calculations.preliminaryStudies).toLocaleString()}`;
-                document.getElementById('breakdown-noneligible').textContent = `€${Math.round(calc.calculations.totalNonEligible).toLocaleString()}`;
-                document.getElementById('breakdown-total').textContent = `€${Math.round(calc.calculations.totalProject).toLocaleString()}`;
+                document.getElementById('breakdown-design').textContent = `€${Math.floor(calc.calculations.designPm).toLocaleString()}`;
+                document.getElementById('breakdown-studies').textContent = `€${Math.floor(calc.calculations.preliminaryStudies).toLocaleString()}`;
+                document.getElementById('breakdown-noneligible').textContent = `€${Math.floor(calc.calculations.totalNonEligible).toLocaleString()}`;
+                document.getElementById('breakdown-total').textContent = `€${Math.floor(calc.calculations.totalProject).toLocaleString()}`;
                 
-                // Update preview boxes
-                document.getElementById('preview-total').textContent = `€${Math.round(calc.calculations.totalProject).toLocaleString()}`;
-                document.getElementById('preview-grant').textContent = `€${Math.round(calc.calculations.grant).toLocaleString()}`;
-                document.getElementById('preview-tax-credit').textContent = `€${Math.round(calc.calculations.taxCredit).toLocaleString()}`;
-                document.getElementById('preview-net').textContent = `€${Math.round(calc.calculations.netInvestment).toLocaleString()}`;
+                // Update preview boxes - ensure integers only
+                document.getElementById('preview-total').textContent = `€${Math.floor(calc.calculations.totalProject).toLocaleString()}`;
+                document.getElementById('preview-grant').textContent = `€${Math.floor(calc.calculations.grant).toLocaleString()}`;
+                document.getElementById('preview-tax-credit').textContent = `€${Math.floor(calc.calculations.taxCredit).toLocaleString()}`;
+                document.getElementById('preview-net').textContent = `€${Math.floor(calc.calculations.netInvestment).toLocaleString()}`;
             },
 
             // Calculate all values following Classic rules
@@ -1027,10 +1027,10 @@
                 document.getElementById('results').style.display = 'block';
                 
                 // Update summary display
-                document.getElementById('result-total-summary').textContent = `€${Math.round(output.calculations.totalProject).toLocaleString()}`;
-                document.getElementById('result-grant-summary').textContent = `€${Math.round(output.calculations.grant).toLocaleString()}`;
-                document.getElementById('result-tax-credit-summary').textContent = `€${Math.round(output.calculations.taxCredit).toLocaleString()}`;
-                document.getElementById('result-net-investment-summary').textContent = `€${Math.round(output.calculations.netInvestment).toLocaleString()}`;
+                document.getElementById('result-total-summary').textContent = `€${Math.floor(output.calculations.totalProject).toLocaleString()}`;
+                document.getElementById('result-grant-summary').textContent = `€${Math.floor(output.calculations.grant).toLocaleString()}`;
+                document.getElementById('result-tax-credit-summary').textContent = `€${Math.floor(output.calculations.taxCredit).toLocaleString()}`;
+                document.getElementById('result-net-investment-summary').textContent = `€${Math.floor(output.calculations.netInvestment).toLocaleString()}`;
                 
                 // Store output for next module
                 window.calculatorOutput = output;
