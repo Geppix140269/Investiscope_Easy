@@ -6,21 +6,51 @@
     <title>InvestiScope Light</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Remove all margin and padding from body */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+        
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             min-height: 100vh;
+            width: 100vw; /* Full viewport width */
         }
+        
         .module-frame {
             width: 100%;
             border: none;
             background: transparent;
         }
+        
+        /* Full-width container */
+        #app-container {
+            width: 100%;
+            max-width: 100%; /* Remove max-width constraint */
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Optional: Add a centered content wrapper inside modules if needed */
+        .content-wrapper {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
     </style>
 </head>
 <body class="gradient-bg">
-    <div id="app-container" style="max-width: 1000px; margin: 0 auto; padding: 20px;">
+    <div id="app-container">
         <!-- Module content loads here -->
-        <iframe id="active-module" class="module-frame" style="height: 800px;"></iframe>
+        <iframe id="active-module" class="module-frame" style="height: 100vh; width: 100%;"></iframe>
     </div>
 
     <script>
